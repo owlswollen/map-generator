@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+
+  <title>Fantasy Map Generator</title>
+  <meta name="description" content="GIS class project">
+  <meta name="author" content="Burak, Giray, Gökçe">
+  <style>
+    path,
+    line {
+      fill: none;
+      stroke: black;
+      stroke-linecap: round;
+    }
+
+    .field {
+      stroke: none;
+      fill-opacity: 1.0;
+    }
+
+    .slope {
+      stroke: #c38559;
+      stroke-width: 1;
+    }
+
+    .river {
+      stroke: #35608b;
+      stroke-width: 2;
+    }
+
+    .coast {
+      stroke: #e5cda1;
+      stroke-width: 4;
+    }
+
+    .border {
+      stroke: #d05252;
+      stroke-width: 5;
+      stroke-dasharray: 4, 4;
+      stroke-linecap: butt;
+    }
+
+    text {
+      font-family: "Trebuchet MS", Helvetica, sans-serif;
+      color: white;
+      stroke: #757577;
+      fill: #c5c4c7;
+      stroke-width: 1;
+      stroke-linejoin: round;
+      paint-order: stroke;
+      font-size: 18px;
+    }
+
+    text.region {
+      stroke-width: 3;
+      font-variant: small-caps;
+      font-size: 25px;
+    }
+
+    svg {
+      background-color: #3f3f41;
+    }
+
+    html,
+    body {
+      height: 100%;
+      width: 100%;
+      margin: 0px;
+      padding: 0px;
+      background-color: #3f3f41;
+    }
+
+    #map {
+      height: 1000px;
+      width: 1000px;
+      background-color: #3f3f41;
+      float: left;
+      margin-right: 20px;
+    }
+
+    #controls {
+      font-family: 'Ubuntu', sans-serif;
+      height: 1000px;
+      width: 500px;
+      padding: 0px;
+      margin: 0px;
+      float: left;
+    }
+
+    #controls li {
+      display: block;
+      list-style: none;
+    }
+
+    #controls label {
+      padding: 0px;
+      display: block;
+      font-weight: bold;
+    }
+
+    #controls input[type=text],
+    #controls input[type=number] {
+      box-sizing: border-box;
+      -webkit-box-sizing: border-box;
+      -moz-box-sizing: border-box;
+      border: 1px solid #BEBEBE;
+      padding: 7px;
+      margin: 0px;
+      -webkit-transition: all 0.30s ease-in-out;
+      -moz-transition: all 0.30s ease-in-out;
+      -ms-transition: all 0.30s ease-in-out;
+      -o-transition: all 0.30s ease-in-out;
+      outline: none;
+    }
+
+    #controls input[type=text]:focus,
+    #controls input[type=number]:focus {
+      -moz-box-shadow: 0 0 8px #88D5E9;
+      -webkit-box-shadow: 0 0 8px #88D5E9;
+      box-shadow: 0 0 8px #88D5E9;
+      border: 1px solid #88D5E9;
+    }
+
+    #submitseed,
+    #download_map {
+      background: #4B99AD;
+      padding: 8px 15px 8px 15px;
+      border: none;
+      color: #fff;
+    }
+
+    #submitseed:hover,
+    #download_map:hover {
+      background: #4691A4;
+      box-shadow: none;
+      -moz-box-shadow: none;
+      -webkit-box-shadow: none;
+    }
+
+    #floating-panel {
+      position: absolute;
+      top: 10px;
+      left: 25%;
+      z-index: 5;
+      background-color: #fff;
+      padding: 5px;
+      border: 1px solid #999;
+      text-align: center;
+      font-family: 'Roboto', 'sans-serif';
+      line-height: 30px;
+      padding-left: 10px;
+    }
+  </style>
+  <script type='text/javascript' >
+    var lang;
+  </script>
+  <script type="text/javascript" src="./mewo2_language.js"></script>
+  <script type="text/javascript" src="./seedrandom.min.js"></script>
+  <!–– http://davidbau.com/archives/2010/01/30/random_seeds_coded_hints_and_quintillions.html ––>
+  <script type="text/javascript" src="http://maps.google.com/maps/api/js?"></script>
+  <script type="text/javascript" src="https://d3js.org/d3.v4.min.js"></script>
+  <script type="text/javascript" src="./gmapFuncions.js"></script>
+  <script type="text/javascript" src="./mewo2_terrain.js"></script>
+  <!–– https://github.com/mewo2/terrain ––>
+  <!–– https://github.com/mewo2/naming-language ––>
+  <script type="text/javascript" src="./priority-queue.min.js"></script>
+  <!–– dependency for terrain.js ––>
+  <script type="text/javascript" src="./saveSvgAsPng.js"></script>
+  <!–– https://spin.atomicobject.com/2014/01/21/convert-svg-to-png/ ––>
+  <script type="text/javascript" src="./getMapParameters.js"></script>
+  <script type="text/javascript" src="./generateSpecialMap.js"></script>
+  <script type="text/javascript" src="./seedOperations.js"></script>
+  <script type="text/javascript" src="./gmap-jslicer.js"></script>
+  <!–– https://github.com/Murtnowski/GMap-JSlicer ––>
+</head>
+
+<body>
+  <div id="floating-panel">
+    <b>Start: </b>
+    <select id="start">
+    </select>
+    <b>End: </b>
+    <select id="end">
+    </select>
+  </div>
+
+  <svg id="mySvg"></svg>
+  <div id="map"></div>
+  <ul id="controls">
+    <li><label>Seed: </label>
+      <input id="seed" value="" type="text">
+    </li><br>
+    <li><label>Number of points: </label>
+      <input id="npts" value="16384" type="number">
+    </li><br>
+    <li><label>Number of cities: </label>
+      <input id="ncities" value="15" type="number">
+    </li><br>
+    <li><label>Number of territories: </label>
+      <input id="nterrs" value="5" type="number">
+    </li><br>
+    <button id="submitseed">Generate map with the seed given</button><br><br><br>
+    <button id="download_map">Download this Map</button>
+  </ul>
+  <script>
+  // Download this map when the button is clicked
+    function downloadImage() {
+      saveSvgAsPng(document.getElementById("mySvg"), "map.png", {
+        scale: 10,
+        left: -500,
+        top: -500
+      });
+    };
+    var my_seed = Seedmatic();
+    Math.seedrandom(my_seed);
+
+    d3.select("#seed").node().value = my_seed;
+
+    d3.select("#submitseed").on("click", getSeed);
+    d3.select("#download_map").on("click", downloadImage);
+
+    generateSpecialMap();
+  </script>
+</body>
+</html>
